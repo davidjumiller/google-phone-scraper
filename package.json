@@ -1,5 +1,5 @@
 {
-  "name": "phone-scraper",
+  "name": "google-phone-scraper",
   "version": "1.0.0",
   "description": "A tool to scrape phone numbers from google places based on different criteria",
   "main": "app.js",

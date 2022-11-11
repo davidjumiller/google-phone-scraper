@@ -1,15 +1,17 @@
 import * as dotenv from 'dotenv'
 import * as fs from 'fs'
-import {Client} from "@googlemaps/google-maps-services-js"
+import { argv } from 'node:process'
+import { Client } from "@googlemaps/google-maps-services-js"
 
 dotenv.config()
 const client = new Client({})
 
 let data = "Name,Phone,Maps Link,Call Status"
+let initLatLon = argv[2]? argv[2] : "49.2455641,-123.0911558"
+let maxRows = argv[3]? parseInt(argv[3]) : 10
+let API_KEY = process.env.GOOGLE_API_KEY
 let count = 0
 let filteredCount = 0
-let initLatLon = "49.2485485,-123.195839"
-let API_KEY = process.env.GOOGLE_API_KEY
 
 const getPlacesNearby = async (location, radius, nextPage, key) => {
   try {
@@ -79,32 +81,33 @@ const findIdealPlaces = async (latlon) => {
     }
   } while (nextPageToken)
 
-  console.log(`Found ${count} places in this area`)
-  console.log(`Filtered and saved ${filteredCount} places`)
+  console.log(`Found ${count} places in this area so far`)
+  console.log(`Filtered and saved ${filteredCount} places total`)
+}
+
+const updateLatLon = (loopCount, latlon) => {
+  let searchAreaWidth = Math.floor(Math.sqrt(maxRows))
+  let latlonArray = latlon.split(",")
+  let lat = parseFloat(latlonArray[0])
+  let lon = parseFloat(latlonArray[1])
+  if (loopCount % searchAreaWidth === searchAreaWidth-1) {
+    lat += 0.01
+    lat = lat.toString()
+    let initLon = initLatLon.split(",")[1]
+    return lat + "," + initLon
+  } else {
+    lon += 0.01
+    lon = lon.toString()
+    return lat + "," + lon
+  }
 }
 
 const main = async () => {
   let loopCount = 0
-  let latlonArray = initLatLon.split(",")
-  let initLat = latlonArray[0]
-  let initLon = latlonArray[1]
   let latlon = initLatLon
-  while (filteredCount < 150 && loopCount < 30) {
+  while (filteredCount < maxRows && loopCount < maxRows) {
     await findIdealPlaces(latlon)
-    if (loopCount % 10 === 9) {
-      let latlonArray = latlon.split(",")
-      let lat = parseFloat(latlonArray[0])
-      lat += 0.01
-      lat = lat.toString()
-      latlon = lat + "," + initLon
-    } else {
-      let latlonArray = latlon.split(",")
-      let lat = latlonArray[0]
-      let lon = parseFloat(latlonArray[1])
-      lon += 0.01
-      lon = lon.toString()
-      latlon = lat + "," + lon
-    }
+    latlon = updateLatLon(loopCount, latlon)
     console.log("Searching... " + latlon)
     loopCount++
   }
